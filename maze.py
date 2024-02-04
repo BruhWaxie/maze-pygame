@@ -1,10 +1,14 @@
 from pygame import *
+from random import choice
 mixer.init()
 
 
 #створи вікно гри
-WIDTH, HEIGHT = 800, 600
-FPS = 360
+TILESIZE = 45
+MAP_WIDTH, MAP_HEIGHT = 20, 15
+WIDTH, HEIGHT = TILESIZE*MAP_WIDTH, TILESIZE*MAP_HEIGHT
+FPS = 60
+
 
 mixer.music.load('jungles.ogg')
 mixer.music.set_volume(0.2)
@@ -37,11 +41,11 @@ class GameSprite(sprite.Sprite):
 
 class Player(GameSprite):
     def __init__(self, sprite_image, width=60, height=60, x=100, y=250):
-        super().__init__(sprite_image, width, height, x, y)
+        super().__init__(sprite_image,TILESIZE,TILESIZE, x, y)
         self.hp = 100
         self.damage = 20
         self.coins = 0
-        self.speed = 1
+        self.speed = 5
 
     def update(self):
         keys = key.get_pressed()
@@ -53,10 +57,57 @@ class Player(GameSprite):
             self.rect.x -= self.speed
         if keys[K_d] and self.rect.right < WIDTH:
             self.rect.x += self.speed
+enemys = sprite.Group()
+class Enemy(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(enemy, TILESIZE, TILESIZE, x, y)
+        self.hp = 100
+        self.damage = 20
+        self.speed = 1
+        self.dir_list = ['left', 'right', 'up', 'down']
+        self.dir = choice(self.dir_list)
+        enemys.add(self)
 
-        
+    def update(self):
+        self.old_pos = self.rect.x, self.rect.y
+        if self.dir == 'right':
+            self.rect.x += self.speed
+        if self.dir == 'left':
+            self.rect.x -= self.speed
+        if self.dir == 'up':
+            self.rect.y -= self.speed
+        if self.dir == 'down':
+            self.rect.y += self.speed
+
+        collidelist = sprite.spritecollide(self, walls, False)
+        if len(collidelist) > 0:
+            self.rect.x, self.rect.y = self.old_pos
+            self.dir = choice(self.dir_list)
+
+walls = sprite.Group()
+class Wall(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
 
 player = Player(hero)
+
+with open('map.txt', 'r') as file:
+    x, y = 0, 0
+    map = file.readlines()
+    for row in map:
+        for symbol in row:
+            if symbol == 'w':
+                Wall(x, y)
+            elif symbol == 'P':
+                player.rect.x = x
+                player.rect.y = y
+            elif symbol == "e":
+                Enemy(x, y)
+            x += TILESIZE
+        y+=TILESIZE
+        x = 0
+
 
 while True:
 #оброби подію «клік за кнопкою "Закрити вікно"»
@@ -65,7 +116,11 @@ while True:
             quit()
 
     window.blit(bg, (0,0))
+    walls.draw(window)
+    enemys.draw(window)
+    enemys.update()
     player.update()
+
     player.draw(window)
     display.update()
     clock.tick(FPS)
