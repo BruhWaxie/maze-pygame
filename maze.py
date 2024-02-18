@@ -1,13 +1,16 @@
 from pygame import *
 from random import choice
 mixer.init()
-
+font.init()
 
 #створи вікно гри
 TILESIZE = 45
 MAP_WIDTH, MAP_HEIGHT = 20, 15
 WIDTH, HEIGHT = TILESIZE*MAP_WIDTH, TILESIZE*MAP_HEIGHT
 FPS = 60
+
+font1 = font.SysFont('Roboto', 30)
+font2 = font.SysFont('Roboto', 30)
 
 
 mixer.music.load('jungles.ogg')
@@ -20,14 +23,19 @@ window = display.set_mode((WIDTH, HEIGHT))
 display.set_caption('Доганялки')
 clock = time.Clock() #game timer
 
-bg = image.load("background.jpg")
+bg = image.load("BG.png")
 bg = transform.scale(bg, (WIDTH, HEIGHT)) #resize bg
 
 hero = image.load('hero.png')
 enemy = image.load('cyborg.png')
-wall = image.load('wall.png')
 
+treasure_img = image.load("treasure.png")
+skeleton_img = image.load('Skeleton.png')
+wall_start = image.load('1.png')
+wall_mid = image.load('2.png')
+wall_end = image.load('3.png')
 
+sprites = sprite.Group()
 class GameSprite(sprite.Sprite):
     def __init__(self, sprite_image, width=60, height=60, x=100, y=250):
         super().__init__()
@@ -35,19 +43,23 @@ class GameSprite(sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-
+        sprites.add(self)
     def draw(self, window):
         window.blit(self.image, self.rect)
 
 class Player(GameSprite):
+    
     def __init__(self, sprite_image, width=60, height=60, x=100, y=250):
         super().__init__(sprite_image,TILESIZE,TILESIZE, x, y)
+        sprites.remove(self)
         self.hp = 100
         self.damage = 20
         self.coins = 0
         self.speed = 5
 
     def update(self):
+        global hp_text
+        self.old_pos = self.rect.x, self.rect.y
         keys = key.get_pressed()
         if keys[K_w] and self.rect.y > 0:
            self.rect.y -= self.speed
@@ -57,6 +69,18 @@ class Player(GameSprite):
             self.rect.x -= self.speed
         if keys[K_d] and self.rect.right < WIDTH:
             self.rect.x += self.speed
+
+        collidelist = sprite.spritecollide(self, walls, False)
+        if len(collidelist) > 0:
+            self.rect.x, self.rect.y = self.old_pos
+
+        collidelist = sprite.spritecollide(self, enemys, False)
+        if len(collidelist) > 0:
+            self.hp -= 20
+            hp_text = font1.render(f'HP:{self.hp}', True, (255, 255, 255))
+            self.rect.x, self.rect.y = self.start_x, self.start_y
+            
+
 enemys = sprite.Group()
 class Enemy(GameSprite):
     def __init__(self, x, y):
@@ -85,42 +109,75 @@ class Enemy(GameSprite):
             self.dir = choice(self.dir_list)
 
 walls = sprite.Group()
-class Wall(GameSprite):
+class WallStart(GameSprite):
     def __init__(self, x, y):
-        super().__init__(wall, TILESIZE, TILESIZE, x, y)      
+        super().__init__(wall_start, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+class WallMid(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall_mid, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+class WallEnd(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall_end, TILESIZE, TILESIZE, x, y)      
         walls.add(self)
 
 player = Player(hero)
-
+hp_text = font1.render(f'HP:{player.hp}', True, (255, 255, 255))
+finish_text = font2.render('Game Over!', True, (255, 0, 15))
+treasure = None
 with open('map.txt', 'r') as file:
     x, y = 0, 0
     map = file.readlines()
     for row in map:
         for symbol in row:
             if symbol == 'w':
-                Wall(x, y)
+                WallMid(x, y)
+            if symbol == 'W':
+                WallEnd(x,y)
+            if symbol == '*':
+                WallStart(x,y)
+            elif symbol == 's':
+                skeleton = GameSprite(skeleton_img, TILESIZE+50, TILESIZE, x, y)
             elif symbol == 'P':
                 player.rect.x = x
                 player.rect.y = y
+                player.start_x, player.start_y = player.rect.x, player.rect.y
             elif symbol == "e":
                 Enemy(x, y)
+            elif symbol == 't':
+                treasure = GameSprite(treasure_img, TILESIZE, TILESIZE, x, y)
+
             x += TILESIZE
         y+=TILESIZE
         x = 0
 
-
+finish = False
 while True:
 #оброби подію «клік за кнопкою "Закрити вікно"»
     for e in event.get():
         if e.type == QUIT:
             quit()
-
+    
     window.blit(bg, (0,0))
-    walls.draw(window)
-    enemys.draw(window)
-    enemys.update()
-    player.update()
 
+    sprites.draw(window)
+    if not finish == True:
+        enemys.update()
+        player.update()
+
+    if player.hp <= 0:
+        finish = True
+
+    if sprite.collide_rect(player, treasure):
+        finish = True
+        finish_text = font2.render('U Won!', True, (255, 0, 15))
+    if finish:
+        window.blit(finish_text, (500, 500))
+    window.blit(hp_text, (10, 10))
     player.draw(window)
+
     display.update()
     clock.tick(FPS)
