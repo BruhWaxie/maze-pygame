@@ -5,7 +5,7 @@ font.init()
 
 #створи вікно гри
 TILESIZE = 45
-MAP_WIDTH, MAP_HEIGHT = 20, 15
+MAP_WIDTH, MAP_HEIGHT = 15, 15
 WIDTH, HEIGHT = TILESIZE*MAP_WIDTH, TILESIZE*MAP_HEIGHT
 FPS = 60
 
@@ -23,7 +23,7 @@ window = display.set_mode((WIDTH, HEIGHT))
 display.set_caption('Доганялки')
 clock = time.Clock() #game timer
 
-bg = image.load("BG.png")
+bg = image.load("floor_bg.png")
 bg = transform.scale(bg, (WIDTH, HEIGHT)) #resize bg
 
 hero = image.load('hero.png')
@@ -31,9 +31,14 @@ enemy = image.load('cyborg.png')
 
 treasure_img = image.load("treasure.png")
 skeleton_img = image.load('Skeleton.png')
-wall_start = image.load('1.png')
-wall_mid = image.load('2.png')
-wall_end = image.load('3.png')
+wall1_img = image.load('wall1.png')
+wall2_img = image.load('wall2.png')
+wall3_img = image.load('wall3.png')
+wall4_img = image.load('wall4.png')
+wall5_img = image.load('wall5.png')
+wall6_img = image.load('wall6.png')
+wall7_img = image.load('wall7.png')
+floor_img = image.load('floor.png')
 
 sprites = sprite.Group()
 class GameSprite(sprite.Sprite):
@@ -109,19 +114,40 @@ class Enemy(GameSprite):
             self.dir = choice(self.dir_list)
 
 walls = sprite.Group()
-class WallStart(GameSprite):
+class Wall1(GameSprite):
     def __init__(self, x, y):
-        super().__init__(wall_start, TILESIZE, TILESIZE, x, y)      
+        super().__init__(wall1_img, TILESIZE, TILESIZE, x, y)      
         walls.add(self)
 
-class WallMid(GameSprite):
+class Wall2(GameSprite):
     def __init__(self, x, y):
-        super().__init__(wall_mid, TILESIZE, TILESIZE, x, y)      
+        super().__init__(wall2_img, TILESIZE, TILESIZE, x, y)      
         walls.add(self)
 
-class WallEnd(GameSprite):
+class Wall3(GameSprite):
     def __init__(self, x, y):
-        super().__init__(wall_end, TILESIZE, TILESIZE, x, y)      
+        super().__init__(wall3_img, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+class Wall4(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall4_img, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+class Wall5(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall5_img, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+class Wall6(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall6_img, TILESIZE, TILESIZE, x, y)      
+        walls.add(self)
+
+
+class Wall7(GameSprite):
+    def __init__(self, x, y):
+        super().__init__(wall7_img, TILESIZE, TILESIZE, x, y)      
         walls.add(self)
 
 player = Player(hero)
@@ -132,16 +158,19 @@ with open('map.txt', 'r') as file:
     x, y = 0, 0
     map = file.readlines()
     for row in map:
+        floor = GameSprite(floor_img, TILESIZE, TILESIZE, x,y)
         for symbol in row:
-            if symbol == 'w':
-                WallMid(x, y)
-            if symbol == 'W':
-                WallEnd(x,y)
-            if symbol == '*':
-                WallStart(x,y)
+            floor = GameSprite(floor_img, TILESIZE, TILESIZE, x,y)
+            if symbol == '1':
+                Wall1(x, y)
+            if symbol == '2':
+                Wall2(x,y)
+            if symbol == '3':
+                Wall3(x,y)
             elif symbol == 's':
                 skeleton = GameSprite(skeleton_img, TILESIZE+50, TILESIZE, x, y)
             elif symbol == 'P':
+
                 player.rect.x = x
                 player.rect.y = y
                 player.start_x, player.start_y = player.rect.x, player.rect.y
@@ -149,7 +178,14 @@ with open('map.txt', 'r') as file:
                 Enemy(x, y)
             elif symbol == 't':
                 treasure = GameSprite(treasure_img, TILESIZE, TILESIZE, x, y)
-
+            elif symbol == '4':
+                Wall4(x,y)
+            elif symbol == '5':
+                Wall5(x,y)
+            elif symbol == '6':
+                Wall6(x,y)
+            elif symbol == '7':
+                Wall7(x,y)
             x += TILESIZE
         y+=TILESIZE
         x = 0
@@ -162,7 +198,6 @@ while True:
             quit()
     
     window.blit(bg, (0,0))
-
     sprites.draw(window)
     if not finish == True:
         enemys.update()
